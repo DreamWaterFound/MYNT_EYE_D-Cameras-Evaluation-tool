@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/inc",
+                "/home/guoqing/libraries/opencv_331/include",
+                "/home/guoqing/libraries/opencv_331/include/opencv",
+                "/home/guoqing/libraries/eigen_333/include/eigen3",
+                "/home/guoqing/libraries/MYNT_EYE_D_180/include",
+                "${workspaceFolder}/ThirdParty/Pangolin/include",
+                "${workspaceFolder}/ThirdParty/gflags/include",
+                "${workspaceFolder}/ThirdParty/glog/include",
+                "${workspaceFolder}/Thirdparty/indicators/include"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}

@@ -41,6 +41,13 @@ if(mynteyed_WITH_OPENCV)
 endif()
 
 # ========================== 自带依赖项 ==========================
+
+# GLOG, 注意位置要写在 GFLAGS 之前, 否则可能发生找不到库的问题
+include_directories(${CMAKE_SOURCE_DIR}/ThirdParty/glog/include)
+list(APPEND LINK_LIBS 
+    ${CMAKE_SOURCE_DIR}/ThirdParty/glog/lib/libglog.a
+)
+
 # 用于支持 GFLAGS
 find_package(Threads REQUIRED)
 include_directories(${PROJECT_SOURCE_DIR}/ThirdParty/gflags/include)
@@ -51,12 +58,6 @@ list(APPEND LINK_LIBS
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
-# GLOG
-include_directories(${CMAKE_SOURCE_DIR}/ThirdParty/glog/include)
-list(APPEND LINK_LIBS 
-    ${CMAKE_SOURCE_DIR}/ThirdParty/glog/lib/libglog.a
-)
-
 # Pangolin
 set(Pangolin_DIR ${PROJECT_SOURCE_DIR}/ThirdParty/Pangolin/install/lib/cmake/Pangolin)
 find_package(Pangolin REQUIRED)
@@ -65,14 +66,20 @@ message(STATUS "Pangolin Found: "  ${Pangolin_INCLUDE_DIRS})
 list(APPEND LINK_LIBS ${Pangolin_LIBRARIES})
 
 # indicators
-include_directories(${PROJECT_SOURCE_DIR}/Thirdparty/gflags/include)
+include_directories(${PROJECT_SOURCE_DIR}/Thirdparty/indicators/include)
 
 # 本工程自身的头文件
 include_directories(${CMAKE_SOURCE_DIR}/inc)
 
 # ========================== 声明可执行文件 ==========================
-add_executable(eva ${CMAKE_SOURCE_DIR}/src/main.cc)
-target_link_libraries(eva ${LINK_LIBS})
+add_executable(eva 
+  ${CMAKE_SOURCE_DIR}/src/main.cc
+  ${CMAKE_SOURCE_DIR}/src/MYNT_CameraIMU.cc
+  ${CMAKE_SOURCE_DIR}/src/Viewer.cc
+
+  
+)
+target_link_libraries(eva ${LINK_LIBS} )
 
 
 
