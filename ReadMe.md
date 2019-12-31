@@ -21,4 +21,8 @@ A Evalution tool for MYNT EYE stereo cameras. I designed it for D1000-50.
 - Indicators (included)
 - MYNT EYE D SDK
 
+## Kown Bugs
+
+- When you pressed "Ctrl+C" before the camera initializated, a segment fault will occured.
+
 

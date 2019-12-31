@@ -222,16 +222,16 @@ void OnImageInfo(const std::shared_ptr<mynteyed::ImgInfo>& cspImgInfo)
 
 void OnLeftImage(const mynteyed::StreamData& leftImgData)
 {
-    // gpViewer->UpdateLeftImage(
-    //     leftImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
-    //     leftImgData.img_info->exposure_time,
-    //     leftImgData.img_info->timestamp);
+    gcpViewer->UpdateLeftImage(
+        leftImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
+        leftImgData.img_info->exposure_time,
+        leftImgData.img_info->timestamp);
 
-    LOG(DEBUG)<<"[OnLeftImage] frame id = " << leftImgData.img_info->frame_id
-              <<", stamp = "<<leftImgData.img_info->timestamp
-              <<", expos time = "<<leftImgData.img_info->exposure_time
-              <<", ["<<leftImgData.img->type() <<"]"
-              <<", frame id = "<<leftImgData.img->frame_id();
+    // LOG(DEBUG)<<"[OnLeftImage] frame id = " << leftImgData.img_info->frame_id
+    //           <<", stamp = "<<leftImgData.img_info->timestamp
+    //           <<", expos time = "<<leftImgData.img_info->exposure_time
+    //           <<", ["<<leftImgData.img->type() <<"]"
+    //           <<", frame id = "<<leftImgData.img->frame_id();
 }
 
 void OnRightImage(const mynteyed::StreamData& rightImgData)

@@ -451,6 +451,7 @@ void Viewer::DrawLeftImageTexture(void)
     {
         // 如果成功获取锁, 那么就绘制
         glColor3f(1.0,1.0,1.0);
+        mbLeftImagesUpdated = false;
         if(cv2glIamge(*mupLeftImageTexture, mImgLeft))
             // 随机纹理
             mupLeftImageTexture->RenderToViewport();

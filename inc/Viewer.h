@@ -52,7 +52,6 @@ public:
         const uint16_t& nExposeTime,
         const uint32_t& nLeftTimestamp);
 
-
 public:
 
     // 和绘图相关的函数
@@ -149,22 +148,30 @@ private:
     /// 时间戳
     uint32_t mnLeftTimestamp;
 
-
-
-
+    // std::mutex mMutexRightImage;
+    // // 标志是否已经更新过了, 每次外部函数调用更新函数的时候这个标志将会被置位; 而当Viewer::Run()函数中使用完之后将复位
+    // bool mbRightImagesUpdated = false;
+    // /// 缓存的左目图像
+    // cv::Mat mImgRight;
+    // /// 曝光时间
+    // uint16_t mnRightExposeTime;
+    // /// 时间戳
+    // uint32_t mnRightTimestamp;
 
     
-    /// 缓存的右目图像
-    cv::Mat miCacheRight;
-    /// 缓存的深度图像
-    cv::Mat miCacheDepth;
-    /// 缓存的点云
-    std::vector<Eigen::Vector3f> mvevCacheClouds3f;
+
     
-    uint16_t mnRightExposeTime;
+    // /// 缓存的右目图像
+    // cv::Mat miCacheRight;
+    // /// 缓存的深度图像
+    // cv::Mat miCacheDepth;
+    // /// 缓存的点云
+    // std::vector<Eigen::Vector3f> mvevCacheClouds3f;
     
-    uint32_t mnRightTimestamp;
-    uint32_t mnDepthTimestamp;
+    // uint16_t mnRightExposeTime;
+    
+    // uint32_t mnRightTimestamp;
+    // uint32_t mnDepthTimestamp;
 
     // IMU 数据
     // /// 缓存的相机位姿

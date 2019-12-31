@@ -58,7 +58,7 @@ bool CameraIMU::OpenCameraIMU(
     params.color_mode           = mynteyed::ColorMode   ::COLOR_RECTIFIED;
     params.color_stream_format  = mynteyed::StreamFormat::STREAM_YUYV;
     params.depth_mode           = mynteyed::DepthMode   ::DEPTH_COLORFUL;
-    params.stream_mode          = mynteyed::StreamMode  ::STREAM_2560x720;
+    params.stream_mode          = mynteyed::StreamMode  ::STREAM_1280x480;
     params.state_ae             = false;
     params.state_awb            = false;
     params.colour_depth_value   = 5000;
@@ -73,7 +73,7 @@ bool CameraIMU::OpenCameraIMU(
     // mpCamera->EnableMotionDatas(0);
 
 
-
+    // 现在先不启用这两个
     // mpCamera->SetImgInfoCallback(funcOnImageInfo);
     // mpCamera->SetMotionCallback (funcOnIMUStream);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_LEFT_COLOR,  funcOnLeftImage);
