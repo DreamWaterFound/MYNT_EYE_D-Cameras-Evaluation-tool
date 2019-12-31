@@ -149,13 +149,13 @@ void Viewer::run(void)
           1.0f,
           (1.0f)*mnImageWidth/mnImageHigh);
 
-    pangolin::GlTexture depthImageTexture(
+    mupDepthImageTexture.reset(new pangolin::GlTexture(
         mnImageWidth, mnImageHigh,
         GL_RGB,
         false,
         0,
         GL_RGB,
-        GL_UNSIGNED_BYTE);
+        GL_UNSIGNED_BYTE));
 
     // 状态条 
     pangolin::View& statusViewer = pangolin::Display("Status_bar")
@@ -205,9 +205,10 @@ void Viewer::run(void)
         std::bind(&Viewer::OnESC, this));
 
     // 初始化各个纹理
-    cv2glIamge(*mupLeftImageTexture,image2);
+    cv2glIamge(*mupLeftImageTexture, image2);
     cv2glIamge(*mupRightImageTexture,image2);
-    cv2glIamge(depthImageTexture,image2);
+    cv2glIamge(*mupDepthImageTexture,image2);
+    mImgLeft = mImgRight = mImgDepth = image2;
 
     //=========================== 显示刷新部分 ================================
 
@@ -240,9 +241,10 @@ void Viewer::run(void)
 
         // 深度图像更新
         depthImgViewer.Activate();
-        glColor3f(1.0,1.0,1.0);
-        if(cv2glIamge(depthImageTexture,image2))
-            depthImageTexture.RenderToViewport();
+        DrawDepthImageTexture();
+        // glColor3f(1.0,1.0,1.0);
+        // if(cv2glIamge(depthImageTexture,image2))
+        //     depthImageTexture.RenderToViewport();
 
         //底部状态栏更新
         statusViewer.Activate();
@@ -500,3 +502,44 @@ void Viewer::DrawRightImageTexture(void)
         // 随机纹理
         mupRightImageTexture->RenderToViewport();
 }
+
+
+
+void Viewer::UpdateDepthImage(
+        const cv::Mat&  imgDepth,
+        const uint16_t& nExposeTime,
+        const uint32_t& nDepthTimestamp)
+{
+    bool bLastUpdateFlag;
+    {
+        std::lock_guard<std::mutex> lock(mMutexDepthImage);
+        bLastUpdateFlag = mbDepthImagesUpdated;
+        mbDepthImagesUpdated = true;
+        
+        mImgDepth = imgDepth.clone();
+        mnDepthExposeTime = nExposeTime;
+        mnDepthTimestamp = nDepthTimestamp;
+    }
+
+    // 写在这里是考虑到调用GLOG会耽误一些时间
+    if(bLastUpdateFlag)
+    {
+        // 说明上一次更新后数据还没有来得及被使用
+        LOG(WARN)<<"[Viewer::UpdateDepthImage] last depth frame was not used!";
+    }
+
+}
+
+
+void Viewer::DrawDepthImageTexture(void)
+{
+    std::unique_lock<std::mutex> lock(mMutexDepthImage);
+    glColor3f(1.0,1.0,1.0);
+    mbDepthImagesUpdated = false;
+    if(cv2glIamge(*mupDepthImageTexture, mImgDepth))
+        // 随机纹理
+        mupDepthImageTexture->RenderToViewport();
+}
+
+
+

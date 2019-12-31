@@ -250,11 +250,16 @@ void OnRightImage(const mynteyed::StreamData& rightImgData)
 
 void OnDepthImage(const mynteyed::StreamData& depthImgData)
 {
-    LOG(DEBUG)<<"[OnDepthImage] frame id = " << depthImgData.img_info->frame_id
-              <<", stamp = "<<depthImgData.img_info->timestamp
-              <<", expos time = "<<depthImgData.img_info->exposure_time
-              <<", ["<<depthImgData.img->type() <<"]"
-              <<", frame id = "<<depthImgData.img->frame_id();
+    gcpViewer->UpdateDepthImage(
+        depthImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
+        depthImgData.img_info->exposure_time,
+        depthImgData.img_info->timestamp);
+
+    // LOG(DEBUG)<<"[OnDepthImage] frame id = " << depthImgData.img_info->frame_id
+    //           <<", stamp = "<<depthImgData.img_info->timestamp
+    //           <<", expos time = "<<depthImgData.img_info->exposure_time
+    //           <<", ["<<depthImgData.img->type() <<"]"
+    //           <<", frame id = "<<depthImgData.img->frame_id();
 }
 
 void OnIMUData(const mynteyed::MotionData& imuData)

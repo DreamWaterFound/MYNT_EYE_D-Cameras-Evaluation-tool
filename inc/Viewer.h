@@ -27,7 +27,6 @@ public:
     //构造函数
     Viewer();
 
-
     /** @brief 避免触发全屏操作 */
     static inline void NonFullScreen(void)
     {   
@@ -56,7 +55,13 @@ public:
     void UpdateRightImage(
         const cv::Mat&  imgRight,
         const uint16_t& nExposeTime,
-        const uint32_t& nLeftTimestamp);
+        const uint32_t& nRightTimestamp);
+
+
+    void UpdateDepthImage(
+        const cv::Mat&  imgDepth,
+        const uint16_t& nExposeTime,
+        const uint32_t& nDepthTimestamp);
 
 public:
 
@@ -65,12 +70,14 @@ public:
     // 绘制彩色图像的纹理
     void DrawLeftImageTexture(void);
     void DrawRightImageTexture(void);
+    void DrawDepthImageTexture(void);
 
 private:
 
     // 和绘图有关的变量, 只被绘图线程使用到, 不需要线程锁保护
     std::unique_ptr<pangolin::GlTexture> mupLeftImageTexture;
     std::unique_ptr<pangolin::GlTexture> mupRightImageTexture;
+    std::unique_ptr<pangolin::GlTexture> mupDepthImageTexture;
 
 public:
 
@@ -165,6 +172,16 @@ private:
     uint16_t mnRightExposeTime;
     /// 时间戳
     uint32_t mnRightTimestamp;
+
+    std::mutex mMutexDepthImage;
+    /// 标志
+    bool mbDepthImagesUpdated = false;
+    /// 缓存的右目图像
+    cv::Mat mImgDepth;
+    /// 曝光时间
+    uint16_t mnDepthExposeTime;
+    /// 时间戳
+    uint32_t mnDepthTimestamp;
 
     
 
