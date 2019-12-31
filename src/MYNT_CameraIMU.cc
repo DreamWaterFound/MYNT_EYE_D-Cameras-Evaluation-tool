@@ -25,7 +25,7 @@ CameraIMU::CameraIMU()
 CameraIMU::~CameraIMU()
 {
     // step 1 如果当前相机已经处于打开状态, 那么就要关闭相机
-    if(mbOpened)
+    if(mpCamera->IsOpened())
     {
         LOG(INFO)<<"[CameraIMU::~CameraIMU()] Closing Camera ...";
         mpCamera->Close();
@@ -54,7 +54,7 @@ bool CameraIMU::OpenCameraIMU(
     // step 2 设置参数.
     mynteyed::OpenParams params(mpDevInfo->index);
     params.framerate            = 30;
-    params.dev_mode             = mynteyed::DeviceMode  ::DEVICE_DEPTH;
+    params.dev_mode             = mynteyed::DeviceMode  ::DEVICE_ALL;
     params.color_mode           = mynteyed::ColorMode   ::COLOR_RECTIFIED;
     params.color_stream_format  = mynteyed::StreamFormat::STREAM_YUYV;
     params.depth_mode           = mynteyed::DepthMode   ::DEPTH_COLORFUL;
@@ -67,15 +67,20 @@ bool CameraIMU::OpenCameraIMU(
 
     // step 3 设置相机工作方式以及回调函数
     mpCamera->EnableProcessMode(mynteyed::ProcessMode::PROC_IMU_ALL);
+
     // 如果需要统计曝光时间等数据, 就需要使能这个选项
     mpCamera->EnableImageInfo(true);
-    mpCamera->EnableMotionDatas(0);
+    // mpCamera->EnableMotionDatas(0);
 
-    mpCamera->SetImgInfoCallback(funcOnImageInfo);
-    mpCamera->SetMotionCallback (funcOnIMUStream);
+
+
+    // mpCamera->SetImgInfoCallback(funcOnImageInfo);
+    // mpCamera->SetMotionCallback (funcOnIMUStream);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_LEFT_COLOR,  funcOnLeftImage);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_RIGHT_COLOR, funcOnRightImage);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_DEPTH,       funcOnDepthImage);
+
+    LOG(DEBUG)<<"[CameraIMU::OpenCameraIMU] Ready to open camera ...";
 
     // step 4 打开相机
     mpCamera->Open(params);
@@ -89,14 +94,15 @@ bool CameraIMU::OpenCameraIMU(
 
     mbOpened = true;
 
-
-
     return true;
 }
 
 // 关闭相机
 bool CameraIMU::CloseCameraIMU(void)
 {
+    mpCamera->DisableImageInfo();
+    // mpCamera->DisableMotionDatas();
+    
     mpCamera->Close();
 
     if(mpCamera->IsOpened())

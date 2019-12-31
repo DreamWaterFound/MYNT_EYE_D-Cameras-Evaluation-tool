@@ -41,17 +41,33 @@ public:
     /** @brief 线程的主进程函数 */
     void run(void);
 
-    /** @brief 更新当前帧的信息,由外部线程调用 */
-    // void updateCurrentFrame(Frame::Ptr currFrame);
-
-    /** @brief 更新全局地图,由外部线程调用 */
-    // void updateGlobalMap(Map::Ptr map);
-
     /** @brief 等待查看器进程结束,堵塞函数 */
     void waitForStopped(void);
 
 public:
-    //内联函数
+
+    // 和数据更新相关的函数
+    void UpdateLeftImage(
+        const cv::Mat&  imgLeft,
+        const uint16_t& nExposeTime,
+        const uint32_t& nLeftTimestamp);
+
+
+public:
+
+    // 和绘图相关的函数
+
+    // 绘制彩色图像的纹理
+    void DrawLeftImageTexture(void);
+
+private:
+
+    // 和绘图有关的变量, 只被绘图线程使用到, 不需要线程锁保护
+    std::unique_ptr<pangolin::GlTexture> mupLeftImageTexture;
+
+public:
+
+    // 和控制相关的内联函数
     /** @brief 请求终止Viewer线程 */
     inline void requestStop(void)
     {
@@ -84,14 +100,15 @@ private:
     //私有内联函数
 
     /** @brief 设置当前线程已经是停止的状态 */
+    // TODO 好像是没有被用到?
     inline void setStateStop(void)
     {
         std::lock_guard<std::mutex> lock(mMutexStateStop);
         mbStateStop=true;
     }
 
-    /** @brief 设置ESC键已经被按下 */
-    inline void setESCPressed(void)
+    /** @brief 回调函数, 设置ESC键已经被按下 */
+    inline void OnESC(void)
     {
         std::lock_guard<std::mutex> lock(mMutexESCPressed);
         mbESCPressed=true;
@@ -99,126 +116,90 @@ private:
 
 private:
 
-
     //绘制地图查看器
     void drawMapViewer(void);
 
-    //绘制RGB图像
-    bool drawRGBView(void);
+    // 下面是比较像工具的函数======================================================
 
-    //绘制深度图像,同时把图像纹理也绘制了，因为深度图像的格式有些复杂
-    bool drawDepthView(pangolin::GlTexture& imageTexture,bool isColored, bool& isOk);
-
-    /*
-
-    //绘制另外两种图像，这里就暂时命名为view3 和 view4
-    void drawView3(void);
-
-    //同上
-    void drawView4(void);std::mutex mMutexFrameData;
-
-    
-
-    */
-
-    //下面是比较像工具的函数======================================================
-
-    //将OpenCV的图像格式转换成为OpenGL的图像格式
+    // 将OpenCV的图像格式转换成为OpenGL的图像格式
     bool cv2glIamge(pangolin::GlTexture& imageTexture, const cv::Mat img);
     std::vector<GLfloat> eigen2glfloat(Eigen::Isometry3d T);
 
-    //绘制底部状态栏的图像
+    // 绘制底部状态栏的图像
     void drawStatusBarImg(pangolin::GlTexture& imageTexture);
 
-    //绘制相机
-    //参数化
+    // 绘制相机
+    // 参数化
     void drawCamera(Eigen::Isometry3d Twc,double size, double r,double g,double b);
 
     void drawCamera(Eigen::Isometry3d Twc,double r=1.0f,double g=1.0f,double b=1.0f);
 
-    //绘制地图
-    void drawMap(void);
-
-
 private:
 
-    ///缓存的当前帧的彩色图像
-    cv::Mat miCacheCurrentRGB;
-    ///缓存的当前帧的深度图像
-    cv::Mat miCacheCurrentDepth;
-    ///缓存的当前帧的特征点
-    std::vector<cv::KeyPoint> mvCacheKeyPoints;
-    ///缓存的地图点数据
-    // std::vector<MapPoint::Ptr> mvCacheMap;
-    ///缓存的帧的位姿
-    Eigen::Isometry3d mmCacheFrameTwc;
+    // ======================= 缓存相关 ======================
+    // 线程锁保护: 此处的百年来那个会被可视化线程使用, 也可能被主线程使用
+
+    std::mutex mMutexLeftImage;
+    // 标志是否已经更新过了, 每次外部函数调用更新函数的时候这个标志将会被置位; 而当Viewer::Run()函数中使用完之后将复位
+    bool mbLeftImagesUpdated = false;
+    /// 缓存的左目图像
+    cv::Mat mImgLeft;
+    /// 曝光时间
+    uint16_t mnLeftExposeTime;
+    /// 时间戳
+    uint32_t mnLeftTimestamp;
 
 
-    ///深度图像可视化使用的颜色环
-    // std::vector<Color> mvHueCircle;
 
-    ///深度测量值的最小值
-    unsigned int mnDepthMin;
-    ///深度测量值的最大值
-    unsigned int mnDepthMax;
-    ///深度图彩色化时的映射参数
-    double mfDepthColoredFactor;
+
+
     
+    /// 缓存的右目图像
+    cv::Mat miCacheRight;
+    /// 缓存的深度图像
+    cv::Mat miCacheDepth;
+    /// 缓存的点云
+    std::vector<Eigen::Vector3f> mvevCacheClouds3f;
     
-
-    ///准备显示的当前帧彩色图像
-    cv::Mat miCurrentRGB;
-    ///准备显示的当前帧深度图像
-    cv::Mat miCurrentDepth;
-
-    ///是否显示浮动的RGB图像窗口
-    bool mbFloatRGBView;
-    ///是否显示浮动的深度图像窗口
-    bool mbFloatDepthView;
-    ///深度图像是否以伪彩色显示
-    bool mbDepthColored;
-
-    ///浮动RGB图像窗口标题
-    const std::string msCurRGBWinName;
-    ///浮动深度图像窗口标题
-    const std::string msCurDepthWinName;
+    uint16_t mnRightExposeTime;
     
+    uint32_t mnRightTimestamp;
+    uint32_t mnDepthTimestamp;
+
+    // IMU 数据
+    // /// 缓存的相机位姿
+    // std::mutex mMutexAccelData;
+    // Eigen::Vector2d mevAccel3d;
+    // double mdAccelTemper;
+    // uint64_t mnAccelTimestamp;
+
+    // Eigen::Isometry3d memCacheCameraTwc;
 
 
+    
+    // ======================= 控制相关 ======================
+    // 线程锁保护: 此处的变量会被可视化线程使用, 也可能被主线程使用
 
-
-
-    ///外部请求终止当前进程的标志
+    /// 外部请求终止当前进程的标志
+    std::mutex mMutexRequestStop;
     bool mbRequestStop;
-    ///当前进程是否已经停止的标志
+
+    /// 当前进程是否已经停止的标志
+    std::mutex mMutexStateStop;
     bool mbStateStop;
-    ///用户是否在查看器中按下ESC键的标志
+
+    /// 用户是否在查看器中按下ESC键的标志
+    std::mutex mMutexESCPressed;
     bool mbESCPressed;
-    ///退出模式.为True的时候,当系统进程结束时,当前查看器进程也将会结束;反之则当前进程会等待,直到用户关闭窗口
+
+
+    /// 退出模式.为True的时候,当系统进程结束时,当前查看器进程也将会结束;反之则当前进程会等待,直到用户关闭窗口
     bool mbQuitAfterEnding;
 
-    //不安全的类型
+    //不安全的类型, 用于缓冲图像
     unsigned char* mpImageCache;
     unsigned char* mpStatusImageCache;
 
-    ///配置器指针
-    // DEPRECATED
-    // Config::Ptr mpConfig;
-
-    ///运行查看器的线程
-    std::shared_ptr<std::thread> mthreadViewer;
-
-
-    
-    ///线程互斥量
-    std::mutex mMutexRequestStop;
-    std::mutex mMutexStateStop;
-    std::mutex mMutexESCPressed;
-
-    ///读写有关当前帧的数据的时候的互斥量
-    std::mutex mMutexFrameData;
-    ///读写地图缓存的时候的互斥量
-    std::mutex mMutexMapData;
 
 private:
 
@@ -229,7 +210,7 @@ private:
     size_t mnWindowHigh  = 768;
     
     // 真的是原始图像的大小, 我们先默认是 640 x 480吧
-    size_t  mnImageHigh = 480;
+    size_t  mnImageHigh  = 480;
     size_t  mnImageWidth = 640;
 
     double mdLfx = 516.55377197265625000f;
@@ -264,7 +245,7 @@ private:
 
     // 一些画图的时候使用到的其他属性
     float mfAxisSize = 1.0f;
-    float mfCameraSize = 0.5f;
+    float mfCameraSize = 1.0f;
 
     // 窗口标题
     std::string mstrWindowTitle = std::string("MYNT EYE D Evalution Tool");

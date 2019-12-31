@@ -18,6 +18,7 @@
 #include <chrono>
 #include <functional>
 #include <thread>
+#include <memory>
 
 // Linux 信号处理
 #include<signal.h>
@@ -43,9 +44,6 @@ using std::cout;
 using std::cin;
 using std::endl;
 
-// using mynteyed::Camera;
-// using mynteyed::DeviceInfo;
-
 // ================================= 宏定义 ============================================
 // 当前程序中要使用的参数名称
 #define DEFAULT_LOG_PATH "./log/"
@@ -55,6 +53,7 @@ DEFINE_string(logPath,        DEFAULT_LOG_PATH, "path to log        (.log file)"
 
 // =================================== 全局变量 ========================================
 bool bLoop;
+std::unique_ptr<Viewer> gcpViewer;
 
 // ================================= 函数原型 ===========================================
 
@@ -109,27 +108,44 @@ int main(int argc, char* argv[])
     signal(SIGINT,SignalHandle);
     bLoop = true;
 
-    Viewer viewer;
-    viewer.run();
+    // step 2 创建可视化查看器
+    gcpViewer = std::unique_ptr<Viewer>(new Viewer());
+    LOG(DEBUG)<<"[main] Launching Viewer ...";
+    std::thread*  pThreadViewer = new std::thread(&Viewer::run, gcpViewer.get());
+    
 
-    // // step 2 初始化相机并打开设备
-    // CameraIMU camera;
-    // // 回调函数
-    // std::function<void(const std::shared_ptr<mynteyed::ImgInfo>&)> f1(OnImageInfo);
-    // std::function<void(const mynteyed::StreamData&)>               f2(OnLeftImage);
-    // std::function<void(const mynteyed::StreamData&)>               f3(OnRightImage);
-    // std::function<void(const mynteyed::StreamData&)>               f4(OnDepthImage);
-    // std::function<void(const mynteyed::MotionData&)>               f5(OnIMUData);
+    // step 3 初始化相机并打开设备
+    CameraIMU camera;
+    // 回调函数
+    std::function<void(const std::shared_ptr<mynteyed::ImgInfo>&)> f1(OnImageInfo);
+    std::function<void(const mynteyed::StreamData&)>               f2(OnLeftImage);
+    std::function<void(const mynteyed::StreamData&)>               f3(OnRightImage);
+    std::function<void(const mynteyed::StreamData&)>               f4(OnDepthImage);
+    std::function<void(const mynteyed::MotionData&)>               f5(OnIMUData);
 
-    // camera.OpenCameraIMU(
-    //     f1, f2, f3, f4, f5);
+    camera.OpenCameraIMU(
+        f1, f2, f3, f4, f5);
 
-    // while(bLoop)
-    // {
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    // };
+    // step 4 主循环
+    while(bLoop)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    // camera.CloseCameraIMU();
+        if(gcpViewer->isESCPressed())
+        {
+            bLoop =false;
+            LOG(DEBUG)<<"[main] ESC Pressed detected.";
+        }
+    };
+
+    // step 5 善后工作
+    LOG(DEBUG)<<"[main] Stopping viewer ...";
+    gcpViewer->requestStop();
+    pThreadViewer->join();
+    
+
+    LOG(DEBUG)<<"[main] Stopping camera ...";
+    camera.CloseCameraIMU();
 
 
     return 0;
@@ -206,6 +222,11 @@ void OnImageInfo(const std::shared_ptr<mynteyed::ImgInfo>& cspImgInfo)
 
 void OnLeftImage(const mynteyed::StreamData& leftImgData)
 {
+    // gpViewer->UpdateLeftImage(
+    //     leftImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
+    //     leftImgData.img_info->exposure_time,
+    //     leftImgData.img_info->timestamp);
+
     LOG(DEBUG)<<"[OnLeftImage] frame id = " << leftImgData.img_info->frame_id
               <<", stamp = "<<leftImgData.img_info->timestamp
               <<", expos time = "<<leftImgData.img_info->exposure_time
