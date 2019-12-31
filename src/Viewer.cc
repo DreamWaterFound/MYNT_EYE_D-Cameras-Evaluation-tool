@@ -132,13 +132,13 @@ void Viewer::run(void)
           pangolin::Attach::ReversePix(mfDepthImageViewerWidth),
           (1.0f)*mnImageWidth/mnImageHigh);
 
-    pangolin::GlTexture rightImageTexture(
+    mupRightImageTexture.reset(new pangolin::GlTexture(
         mnImageWidth, mnImageHigh,
         GL_RGB,
         false,
         0,
         GL_RGB,
-        GL_UNSIGNED_BYTE);
+        GL_UNSIGNED_BYTE));
 
     // 图形窗口3 
     pangolin::View& depthImgViewer = pangolin::Display("Depth_image")
@@ -206,7 +206,7 @@ void Viewer::run(void)
 
     // 初始化各个纹理
     cv2glIamge(*mupLeftImageTexture,image2);
-    cv2glIamge(rightImageTexture,image2);
+    cv2glIamge(*mupRightImageTexture,image2);
     cv2glIamge(depthImageTexture,image2);
 
     //=========================== 显示刷新部分 ================================
@@ -232,9 +232,11 @@ void Viewer::run(void)
 
         // 右目图像更新
         rightImgViewer.Activate();
-        glColor3f(1.0,1.0,1.0);
-        if(cv2glIamge(rightImageTexture,image3))
-            rightImageTexture.RenderToViewport();
+        DrawRightImageTexture();
+        // DEPRECATED
+        // glColor3f(1.0,1.0,1.0);
+        // if(cv2glIamge(rightImageTexture,image3))
+        //     rightImageTexture.RenderToViewport();
 
         // 深度图像更新
         depthImgViewer.Activate();
@@ -461,4 +463,40 @@ void Viewer::DrawLeftImageTexture(void)
     //     // 锁定失败, 还是使用上次的结果绘图
     //     mupLeftImageTexture->RenderToViewport();
     // }
+}
+
+void Viewer::UpdateRightImage(
+        const cv::Mat&  imgRight,
+        const uint16_t& nExposeTime,
+        const uint32_t& nRightTimestamp)
+{
+    bool bLastUpdateFlag;
+    {
+        std::lock_guard<std::mutex> lock(mMutexRightImage);
+        bLastUpdateFlag = mbRightImagesUpdated;
+        mbRightImagesUpdated = true;
+        
+        mImgRight = imgRight.clone();
+        mnRightExposeTime = nExposeTime;
+        mnRightTimestamp = nRightTimestamp;
+    }
+
+    // 写在这里是考虑到调用GLOG会耽误一些时间
+    if(bLastUpdateFlag)
+    {
+        // 说明上一次更新后数据还没有来得及被使用
+        LOG(WARN)<<"[Viewer::UpdateRightImage] last right frame was not used!";
+    }
+
+}
+
+
+void Viewer::DrawRightImageTexture(void)
+{
+    std::unique_lock<std::mutex> lock(mMutexRightImage);
+    glColor3f(1.0,1.0,1.0);
+    mbRightImagesUpdated = false;
+    if(cv2glIamge(*mupRightImageTexture, mImgRight))
+        // 随机纹理
+        mupRightImageTexture->RenderToViewport();
 }

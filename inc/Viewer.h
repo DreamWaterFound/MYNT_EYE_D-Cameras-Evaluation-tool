@@ -46,9 +46,15 @@ public:
 
 public:
 
-    // 和数据更新相关的函数
+    // 和数据更新相关的函数, 由其他的线程进行调用
     void UpdateLeftImage(
         const cv::Mat&  imgLeft,
+        const uint16_t& nExposeTime,
+        const uint32_t& nLeftTimestamp);
+
+
+    void UpdateRightImage(
+        const cv::Mat&  imgRight,
         const uint16_t& nExposeTime,
         const uint32_t& nLeftTimestamp);
 
@@ -58,11 +64,13 @@ public:
 
     // 绘制彩色图像的纹理
     void DrawLeftImageTexture(void);
+    void DrawRightImageTexture(void);
 
 private:
 
     // 和绘图有关的变量, 只被绘图线程使用到, 不需要线程锁保护
     std::unique_ptr<pangolin::GlTexture> mupLeftImageTexture;
+    std::unique_ptr<pangolin::GlTexture> mupRightImageTexture;
 
 public:
 
@@ -148,15 +156,15 @@ private:
     /// 时间戳
     uint32_t mnLeftTimestamp;
 
-    // std::mutex mMutexRightImage;
-    // // 标志是否已经更新过了, 每次外部函数调用更新函数的时候这个标志将会被置位; 而当Viewer::Run()函数中使用完之后将复位
-    // bool mbRightImagesUpdated = false;
-    // /// 缓存的左目图像
-    // cv::Mat mImgRight;
-    // /// 曝光时间
-    // uint16_t mnRightExposeTime;
-    // /// 时间戳
-    // uint32_t mnRightTimestamp;
+    std::mutex mMutexRightImage;
+    /// 标志
+    bool mbRightImagesUpdated = false;
+    /// 缓存的右目图像
+    cv::Mat mImgRight;
+    /// 曝光时间
+    uint16_t mnRightExposeTime;
+    /// 时间戳
+    uint32_t mnRightTimestamp;
 
     
 

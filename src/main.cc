@@ -236,11 +236,16 @@ void OnLeftImage(const mynteyed::StreamData& leftImgData)
 
 void OnRightImage(const mynteyed::StreamData& rightImgData)
 {
-    LOG(DEBUG)<<"[OnRightImage] frame id = " << rightImgData.img_info->frame_id
-              <<", stamp = "<<rightImgData.img_info->timestamp
-              <<", expos time = "<<rightImgData.img_info->exposure_time
-              <<", ["<<rightImgData.img->type() <<"]"
-              <<", frame id = "<<rightImgData.img->frame_id();
+    gcpViewer->UpdateRightImage(
+        rightImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
+        rightImgData.img_info->exposure_time,
+        rightImgData.img_info->timestamp);
+
+    // LOG(DEBUG)<<"[OnRightImage] frame id = " << rightImgData.img_info->frame_id
+    //           <<", stamp = "<<rightImgData.img_info->timestamp
+    //           <<", expos time = "<<rightImgData.img_info->exposure_time
+    //           <<", ["<<rightImgData.img->type() <<"]"
+    //           <<", frame id = "<<rightImgData.img->frame_id();
 }
 
 void OnDepthImage(const mynteyed::StreamData& depthImgData)
