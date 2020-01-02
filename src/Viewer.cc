@@ -147,7 +147,7 @@ void Viewer::run(void)
     mpStatusImageCache=new unsigned char[
         mnStatusBarHigh * mnStatusBarWidth *3];
 
-    // 图形窗口1
+    // 左目图像显示窗口
     pangolin::View& leftImgViewer = pangolin::Display("Left_Image")
       .SetBounds(
           pangolin::Attach::Pix(mfLeftImageViewerHigh + mnStatusBarHigh),
@@ -155,10 +155,12 @@ void Viewer::run(void)
           pangolin::Attach::ReversePix( 
                 mfLeftImageViewerWidth  + 
                 mfRightImageViewerWidth +
-                mfDepthImageViewerWidth),
+                mfDepthImageViewerWidth +
+                mfPloterWidth),
           pangolin::Attach::ReversePix( 
                 mfRightImageViewerWidth +
-                mfDepthImageViewerWidth),
+                mfDepthImageViewerWidth +
+                mfPloterWidth),
           (1.0f)*mnImageWidth/mnImageHigh);
 
     mupLeftImageTexture.reset(new pangolin::GlTexture(
@@ -176,8 +178,11 @@ void Viewer::run(void)
           pangolin::Attach::Pix(mnStatusBarHigh),
           pangolin::Attach::ReversePix(
                 mfRightImageViewerWidth +
-                mfDepthImageViewerWidth),
-          pangolin::Attach::ReversePix(mfDepthImageViewerWidth),
+                mfDepthImageViewerWidth +
+                mfPloterWidth),
+          pangolin::Attach::ReversePix(
+                mfDepthImageViewerWidth +
+                mfPloterWidth),
           (1.0f)*mnImageWidth/mnImageHigh);
 
     mupRightImageTexture.reset(new pangolin::GlTexture(
@@ -193,8 +198,10 @@ void Viewer::run(void)
       .SetBounds(
           pangolin::Attach::Pix(mfDepthImageViewerHigh + mnStatusBarHigh),
           pangolin::Attach::Pix(mnStatusBarHigh),
-          pangolin::Attach::ReversePix(mfDepthImageViewerWidth),
-          1.0f,
+          pangolin::Attach::ReversePix(
+                mfDepthImageViewerWidth + 
+                mfPloterWidth),
+          pangolin::Attach::ReversePix(mfPloterWidth),
           (1.0f)*mnImageWidth/mnImageHigh);
 
     mupDepthImageTexture.reset(new pangolin::GlTexture(
@@ -210,12 +217,13 @@ void Viewer::run(void)
       .SetBounds(
           pangolin::DisplayBase().bottom,
           pangolin::Attach::Pix(mnStatusBarHigh),
-          pangolin::Attach::ReversePix( 
-                mfLeftImageViewerWidth  + 
-                mfRightImageViewerWidth +
-                mfDepthImageViewerWidth),
+        //   pangolin::Attach::ReversePix(mnStatusBarWidth),
+          pangolin::Attach::ReversePix(mnStatusBarWidth),
           pangolin::DisplayBase().right,
-          (1.0f)*mnStatusBarWidth/mnStatusBarHigh);
+          (-1.0f)*mnStatusBarWidth / mnStatusBarHigh);
+
+
+    LOG(DEBUG)<<"[Viewer::run] mnStatusBarHigh = "<<mnStatusBarHigh<<", mnStatusBarWidth = "<<mnStatusBarWidth;
 
     mupStatusImageTexture = std::unique_ptr<pangolin::GlTexture>(
         new pangolin::GlTexture(
@@ -252,11 +260,10 @@ void Viewer::run(void)
     );
 
     mspExpoTimePlotter->SetBounds(
+        pangolin::Attach::Pix(mnStatusBarHigh),
         pangolin::Attach::Pix(mfDepthImageViewerHigh + mnStatusBarHigh),
-        // pangolin::DisplayBase().top,
-        pangolin::Attach::Pix(2 * mfDepthImageViewerHigh + mnStatusBarHigh),
         // 先这么设置着
-        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::Attach::ReversePix(mfPloterWidth),
         pangolin::DisplayBase().right
     );
 
@@ -291,7 +298,7 @@ void Viewer::run(void)
         // pangolin::DisplayBase().top,
         pangolin::Attach::Pix(3 * mfDepthImageViewerHigh + mnStatusBarHigh),
         // 先这么设置着
-        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::Attach::ReversePix(mfPloterWidth),
         pangolin::DisplayBase().right
     );
     mspAccelPlotter->Track("$i");
@@ -323,7 +330,7 @@ void Viewer::run(void)
         // pangolin::DisplayBase().top,
         pangolin::Attach::Pix(4 * mfDepthImageViewerHigh + mnStatusBarHigh),
         // 先这么设置着
-        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::Attach::ReversePix(mfPloterWidth),
         pangolin::DisplayBase().right
     );
     mspGyroPlotter->Track("$i");
@@ -354,7 +361,7 @@ void Viewer::run(void)
         // pangolin::DisplayBase().top,
         pangolin::Attach::Pix(2 * mfDepthImageViewerHigh + mnStatusBarHigh),
         // 先这么设置着
-        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::Attach::ReversePix(mfPloterWidth),
         pangolin::DisplayBase().right
     );
     mspIMUTempPlotter->Track("$i");
@@ -412,7 +419,6 @@ void Viewer::run(void)
 
         //底部状态栏更新
         statusViewer.Activate();
-        glColor3f(1.0,1.0,1.0);
         DrawStatusBarImg();
 
         pangolin::FinishFrame();
@@ -470,8 +476,11 @@ void Viewer::DrawStatusBarImg(void)
     {
         std::lock_guard<std::mutex> lock(mMutexStatusBar);
 
+
         if(mbStatusBarUpdated)
         {
+            LOG(DEBUG)<<"[Viewer::DrawStatusBarImg] mnStatusBarHigh = "<<mnStatusBarHigh<<", mnStatusBarWidth = "<<mnStatusBarWidth;
+
             mbStatusBarUpdated = false;
             cv::Mat statusImg(
                 mnStatusBarHigh,

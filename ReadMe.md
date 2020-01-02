@@ -4,11 +4,11 @@ A Evalution tool for MYNT EYE stereo cameras. I designed it for D1000-50.
 
 ## Feature
 
-- [ ] Display stereo images and point cloud in one window (depended on Pangolin and OpenCV)
+- [x] Display stereo images and point cloud in one window (depended on Pangolin and OpenCV)
 - [ ] Give an intuitive presentation for camera's rotation (based on IMU data)
-- [ ] Drawing IMU raw data (include temperature) over time
+- [x] Drawing IMU raw data (include temperature) over time
 - [ ] Time stamp drawing of three sensors ( left and right cameras, and IMU)
-- [ ] Drawing exposure time over time
+- [x] Drawing exposure time over time
 
 ## Dependencies
 

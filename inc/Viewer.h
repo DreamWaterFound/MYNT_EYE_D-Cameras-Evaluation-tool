@@ -319,7 +319,7 @@ private:
     // 一些用于控制绘图的变量. 一次写入,全程只读
 
     // 窗口的大小
-    size_t mnWindowWitdh = 1024;
+    size_t mnWindowWitdh = 1366;
     size_t mnWindowHigh  = 768;
     
     // 真的是原始图像的大小, 我们先默认是 640 x 480吧
@@ -341,15 +341,17 @@ private:
     size_t mnStatusBarWidth = mnWindowWitdh - mnPanelWitdh;
 
     // ImageViewer的大小
-    size_t mfLeftImageViewerWidth  = round((mnWindowWitdh - 180)/3.0f);
-    size_t mfRightImageViewerWidth = round((mnWindowWitdh - 180)/3.0f);
-    size_t mfDepthImageViewerWidth = mnWindowWitdh - 180 - mfLeftImageViewerWidth - mfRightImageViewerWidth;
-
+    size_t mfLeftImageViewerWidth  = round((mnWindowWitdh - 180)/4.0f);
+    size_t mfRightImageViewerWidth = mfLeftImageViewerWidth;
+    size_t mfDepthImageViewerWidth = mfLeftImageViewerWidth;
+    
     size_t mfLeftImageViewerHigh   = round(mfLeftImageViewerWidth * 0.75);
     size_t mfRightImageViewerHigh  = mfLeftImageViewerHigh;
     size_t mfDepthImageViewerHigh  = mfLeftImageViewerHigh;
 
-    // TODO 这里暂时没有考虑其他的Plotter
+    // Ploter
+    size_t mfPloterWidth = mnWindowWitdh - mnPanelWitdh - mfLeftImageViewerWidth - mfRightImageViewerWidth - mfDepthImageViewerWidth;
+    size_t mfPloterHigh  = mfLeftImageViewerHigh;
 
     // MapViewer
     size_t mnMapViewerHigh  = mnWindowHigh  - mfLeftImageViewerHigh - mnStatusBarHigh;
