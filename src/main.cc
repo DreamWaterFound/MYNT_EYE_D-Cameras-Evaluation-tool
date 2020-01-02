@@ -251,7 +251,8 @@ void OnDepthImage(const mynteyed::StreamData& depthImgData)
 {
     if(!bLoop) return;
     gcpViewer->UpdateDepthImage(
-        depthImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
+        // depthImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
+        depthImgData.img->To(mynteyed::ImageFormat::DEPTH_RAW)->ToMat(),
         // depthImgData.img_info->exposure_time,
         0);
         // depthImgData.img_info->timestamp);

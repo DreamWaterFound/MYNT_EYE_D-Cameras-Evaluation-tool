@@ -57,7 +57,7 @@ bool CameraIMU::OpenCameraIMU(
     params.dev_mode             = mynteyed::DeviceMode  ::DEVICE_ALL;
     params.color_mode           = mynteyed::ColorMode   ::COLOR_RECTIFIED;
     params.color_stream_format  = mynteyed::StreamFormat::STREAM_YUYV;
-    params.depth_mode           = mynteyed::DepthMode   ::DEPTH_COLORFUL;
+    params.depth_mode           = mynteyed::DepthMode   ::DEPTH_RAW;
     params.stream_mode          = mynteyed::StreamMode  ::STREAM_1280x480;
     params.state_ae             = true;
     params.state_awb            = true;

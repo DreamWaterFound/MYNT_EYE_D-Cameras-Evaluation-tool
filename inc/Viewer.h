@@ -20,6 +20,29 @@
 #include <pangolin/pangolin.h>
 #include <opencv2/opencv.hpp>
 
+/** @brief 自定义的颜色类型 */
+typedef struct _Color
+{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+}Color;
+
+struct CloudPoint
+{
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    
+    float   x;
+    float   y;
+    float   z;
+
+    CloudPoint(uint8_t r_, uint8_t g_, uint8_t b_, float x_, float y_, float z_):
+        r(r_), g(g_), b(b_), x(x_), y(y_), z(z_){}
+
+};
+
 class Viewer
 {
 public:
@@ -129,6 +152,26 @@ public:
 
 private:
 
+    // =================== 深度图可视化相关 =================
+    /// 深度图像可视化使用的颜色环
+    std::vector<Color> mvHueCircle;
+
+    /// 深度测量值的最小值
+    unsigned int mnDepthMin;
+    /// 深度测量值的最大值
+    unsigned int mnDepthMax;
+    /// 深度图彩色化时的映射参数
+    double       mdDepthColoredFactor;
+
+private:
+
+    // ================ 点云的可视化相关====================
+    
+    std::vector<CloudPoint> mvCloudPoints;
+    bool mbCloudUpdated = false;
+
+private:
+
     // ======================= 缓存相关 ======================
     // 线程锁保护: 此处的百年来那个会被可视化线程使用, 也可能被主线程使用
 
@@ -207,7 +250,7 @@ private:
     std::shared_ptr<pangolin::Plotter> mspIMUTempPlotter;
 
 private:
-    //私有内联函数
+    // 私有内联函数
 
     /** @brief 设置当前线程已经是停止的状态 */
     // TODO 好像是没有被用到?
@@ -226,7 +269,7 @@ private:
 
 private:
 
-    //绘制地图查看器
+    // 绘制地图查看器
     void drawMapViewer(void);
 
     // 下面是比较像工具的函数======================================================

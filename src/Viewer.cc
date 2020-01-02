@@ -23,8 +23,54 @@ Viewer::Viewer()
     :mbRequestStop(false),mbStateStop(true),mbESCPressed(false),
      mpImageCache(nullptr), mpStatusImageCache(nullptr)
 {
+    // 状态栏初始图像生成
     mstrStatusBar = std::string("Viewer Laucnhed.");
     mbStatusBarUpdated = true;
+
+
+    // 颜色环初始化
+    mvHueCircle.reserve(1536);
+    mvHueCircle.resize(1536);
+
+    for (int i = 0;i < 255;i++)
+	{
+		mvHueCircle[i].r = 255;
+		mvHueCircle[i].g = i;
+		mvHueCircle[i].b = 0;
+
+		mvHueCircle[i+255].r = 255-i;
+		mvHueCircle[i+255].g = 255;
+		mvHueCircle[i+255].b = 0;
+
+		mvHueCircle[i+511].r = 0;
+		mvHueCircle[i+511].g = 255;
+		mvHueCircle[i+511].b = i;
+
+		mvHueCircle[i+767].r = 0;
+		mvHueCircle[i+767].g = 255-i;
+		mvHueCircle[i+767].b = 255;
+
+		mvHueCircle[i+1023].r = i;
+		mvHueCircle[i+1023].g = 0;
+		mvHueCircle[i+1023].b = 255;
+
+		mvHueCircle[i+1279].r = 255;
+		mvHueCircle[i+1279].g = 0;
+		mvHueCircle[i+1279].b = 255-i;
+	}
+
+	mvHueCircle[1534].r = 0;
+	mvHueCircle[1534].g = 0;
+	mvHueCircle[1534].b = 0;
+
+	mvHueCircle[1535].r = 255;
+	mvHueCircle[1535].g = 255;
+	mvHueCircle[1535].b = 255;
+
+    // 目前的相机参数中是这样子设定的
+    mnDepthMax = 10000;
+    mnDepthMin = 100;
+    mdDepthColoredFactor = 1.0 * 1536 / (mnDepthMax-mnDepthMin);
 }
 
 
@@ -370,6 +416,9 @@ void Viewer::run(void)
         DrawStatusBarImg();
 
         pangolin::FinishFrame();
+
+        // 为了方便录屏使用, 可以避免录屏出现卡死的现象
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     std::cout<<"\e[1;33mStop request get.\e[0m"<<std::endl;
@@ -479,8 +528,63 @@ void Viewer::drawMapViewer(void)
 
     
     drawCamera(T);
-   
-    // TODO 点云的绘制可以放在这里
+
+    if(mbCloudUpdated)
+    {
+        mbCloudUpdated = false;
+        // 有了新的需要生成的点云, 上锁
+        std::lock_guard<std::mutex> lockDepthImg(mMutexDepthImage);
+        std::lock_guard<std::mutex> lockLeftImg(mMutexLeftImage);
+
+        // 清空已有点云数据
+        mvCloudPoints.clear();
+        size_t rows = mImgDepth.rows;
+        size_t cols = mImgDepth.cols;
+
+        for(size_t nIdr = 0; nIdr < rows; ++nIdr)
+        {
+            for(size_t nIdc = 0; nIdc < cols; ++nIdc)
+            {
+                unsigned int intensity = mImgDepth.at<uint16_t>(nIdr, nIdc);
+                // 深度值不合法, 那么我们就不管了
+                if(intensity < mnDepthMin || intensity > mnDepthMax)
+                {
+                    continue;
+                }
+
+                float fDepth = static_cast<float>(intensity)/1000.0f;
+
+
+                // 深度值合法才会生成新的点
+                mvCloudPoints.emplace_back(
+                    mImgLeft.at<uint8_t>(nIdr, 3*nIdc + 2),
+                    mImgLeft.at<uint8_t>(nIdr, 3*nIdc + 1),
+                    mImgLeft.at<uint8_t>(nIdr, 3*nIdc),
+                    
+                    
+                    
+                    // 0,
+                    // 255,
+                    // 0,
+                    fDepth * (nIdc - mdLcx)/mdLfx,
+                    fDepth * (nIdr - mdLcy)/mdLfy,
+                    fDepth
+                );
+            }
+        }    
+    }
+
+    // 没有需要重新绘制的点云, 直接显示已经有的点云就可以了
+    glPointSize(2);
+    glBegin(GL_POINTS);
+
+    for(const auto& point : mvCloudPoints)
+    {
+        glColor3f(point.r/255.0, point.g/255.0, point.b/255.0);
+        glVertex3f(point.x, point.y, point.z);
+    }
+
+    glEnd();
     
 }
 
@@ -688,10 +792,51 @@ void Viewer::DrawDepthImageTexture(void)
 {
     std::unique_lock<std::mutex> lock(mMutexDepthImage);
     glColor3f(1.0,1.0,1.0);
-    mbDepthImagesUpdated = false;
-    if(cv2glIamge(*mupDepthImageTexture, mImgDepth))
-        // 随机纹理
+
+    if(mbDepthImagesUpdated == false || mImgDepth.empty() == true)
+    {
+        // 没有发生的深度图像的更新, 或者是更新成为了空图像, 就直接使用上次的绘制结果
         mupDepthImageTexture->RenderToViewport();
+        return ;
+    }
+
+    // 发生的深度图像的更新, 需要重新绘制
+    mbDepthImagesUpdated = false;
+    
+    // 如果不为空, 为了进行可视化, 这里要重新写点东西
+    size_t rows = mImgDepth.rows;
+    size_t cols = mImgDepth.cols;
+
+    unsigned int index;
+
+    for(size_t nIdr = 0; nIdr < rows; ++nIdr)
+    {
+        for(size_t nIdc = 0; nIdc < cols; ++nIdc)
+        {
+            unsigned int intensity = mImgDepth.at<uint16_t>(rows-1-nIdr,nIdc); // +(((unsigned int)(miCurrentDepth.at<unsigned char>(rows-1-i,j*2+1)))<<8);
+                    
+            if(intensity < mnDepthMin)         index=1534;
+
+            else 
+            {
+                index = (intensity-mnDepthMin) * mdDepthColoredFactor;
+                //如果映射超过了彩色区，说明太远了，直接显示成白色
+                if(index > 1534) index = 1535;
+            }
+
+            //这里目前就只移动了7位了～
+            mpImageCache[nIdr * 3 * cols+nIdc * 3    ] = mvHueCircle[index].r;
+            mpImageCache[nIdr * 3 * cols+nIdc * 3 + 1] = mvHueCircle[index].g;
+            mpImageCache[nIdr * 3 * cols+nIdc * 3 + 2] = mvHueCircle[index].b;
+
+        }
+    }
+
+    mupDepthImageTexture->Upload(mpImageCache,GL_RGB,GL_UNSIGNED_BYTE);
+    mupDepthImageTexture->RenderToViewport();
+
+    // 点云也需要重新绘制
+    mbCloudUpdated = true;
 }
 
 void Viewer::UpdateStatusBar(const std::string& strStatusString)
