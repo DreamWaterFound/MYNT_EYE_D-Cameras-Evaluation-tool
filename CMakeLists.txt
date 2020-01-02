@@ -11,8 +11,8 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 # ======================== 编译器标志设置 =========================
 # 使能所有警告, 最高等级优化, 使用C++11标准, 针对目标机器CPU自身特点进行针对性优化
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3 -std=c++11 -march=native")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3 -std=c++11 -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3 -g -std=c++11 -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -O3 -std=c++11 -march=native")
 # 添加 -fPIC 避免动态链接库和静态链接库在链接的时候可能会出现的问题
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")

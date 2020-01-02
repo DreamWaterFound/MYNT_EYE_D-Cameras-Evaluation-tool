@@ -57,11 +57,13 @@ public:
         const uint16_t& nExposeTime,
         const uint32_t& nRightTimestamp);
 
-
+    // TODO 可以修改接口,对于深度图像,我们并不需要曝光时间
     void UpdateDepthImage(
         const cv::Mat&  imgDepth,
-        const uint16_t& nExposeTime,
         const uint32_t& nDepthTimestamp);
+
+    // 更新状态栏数据
+    void UpdateStatusBar(const std::string& strStatusString);
 
 public:
 
@@ -78,6 +80,8 @@ private:
     std::unique_ptr<pangolin::GlTexture> mupLeftImageTexture;
     std::unique_ptr<pangolin::GlTexture> mupRightImageTexture;
     std::unique_ptr<pangolin::GlTexture> mupDepthImageTexture;
+
+    std::unique_ptr<pangolin::GlTexture> mupStatusImageTexture;
 
 public:
 
@@ -111,6 +115,60 @@ public:
     }
 
 private:
+
+    // ======================= 缓存相关 ======================
+    // 线程锁保护: 此处的百年来那个会被可视化线程使用, 也可能被主线程使用
+
+    std::mutex mMutexLeftImage;
+    // 标志是否已经更新过了, 每次外部函数调用更新函数的时候这个标志将会被置位; 而当Viewer::Run()函数中使用完之后将复位
+    bool mbLeftImagesUpdated = false;
+    /// 缓存的左目图像
+    cv::Mat mImgLeft;
+    /// 时间戳
+    uint32_t mnLeftTimestamp;
+
+    std::mutex mMutexRightImage;
+    /// 标志
+    bool mbRightImagesUpdated = false;
+    /// 缓存的右目图像
+    cv::Mat mImgRight;
+    /// 时间戳
+    uint32_t mnRightTimestamp;
+
+    /// 曝光时间， 这个变量同时受到访问锁控制
+    std::mutex mMutexImageExposeTime;
+    bool     mbLeftETUpdated  = false ;
+    bool     mbRightETUpdated = false;
+    uint16_t mnRightExposeTime;
+    uint16_t mnLeftExposeTime;
+    
+
+    std::mutex mMutexDepthImage;
+    /// 标志
+    bool mbDepthImagesUpdated = false;
+    /// 缓存的右目图像
+    cv::Mat mImgDepth;
+    /// 时间戳
+    uint32_t mnDepthTimestamp;
+
+private:
+    // 状态栏相关
+    std::mutex  mMutexStatusBar;
+    std::string mstrStatusBar;
+    bool mbStatusBarUpdated = false;
+    
+
+private:
+    // ==== Polter =====
+
+    // 用于记录数据的 Logger
+    std::shared_ptr<pangolin::DataLog> mspImgExpoTimeLogger;
+    // std::shared_ptr<pangolin::DataLog> mspRImgExpoTimeLogger;
+
+    // 数据绘制器 -- 曝光时间相关
+    std::shared_ptr<pangolin::Plotter> mspExpoTimePlotter;
+
+private:
     //私有内联函数
 
     /** @brief 设置当前线程已经是停止的状态 */
@@ -140,7 +198,7 @@ private:
     std::vector<GLfloat> eigen2glfloat(Eigen::Isometry3d T);
 
     // 绘制底部状态栏的图像
-    void drawStatusBarImg(pangolin::GlTexture& imageTexture);
+    void DrawStatusBarImg(void);
 
     // 绘制相机
     // 参数化
@@ -149,64 +207,6 @@ private:
     void drawCamera(Eigen::Isometry3d Twc,double r=1.0f,double g=1.0f,double b=1.0f);
 
 private:
-
-    // ======================= 缓存相关 ======================
-    // 线程锁保护: 此处的百年来那个会被可视化线程使用, 也可能被主线程使用
-
-    std::mutex mMutexLeftImage;
-    // 标志是否已经更新过了, 每次外部函数调用更新函数的时候这个标志将会被置位; 而当Viewer::Run()函数中使用完之后将复位
-    bool mbLeftImagesUpdated = false;
-    /// 缓存的左目图像
-    cv::Mat mImgLeft;
-    /// 曝光时间
-    uint16_t mnLeftExposeTime;
-    /// 时间戳
-    uint32_t mnLeftTimestamp;
-
-    std::mutex mMutexRightImage;
-    /// 标志
-    bool mbRightImagesUpdated = false;
-    /// 缓存的右目图像
-    cv::Mat mImgRight;
-    /// 曝光时间
-    uint16_t mnRightExposeTime;
-    /// 时间戳
-    uint32_t mnRightTimestamp;
-
-    std::mutex mMutexDepthImage;
-    /// 标志
-    bool mbDepthImagesUpdated = false;
-    /// 缓存的右目图像
-    cv::Mat mImgDepth;
-    /// 曝光时间
-    uint16_t mnDepthExposeTime;
-    /// 时间戳
-    uint32_t mnDepthTimestamp;
-
-    
-
-    
-    // /// 缓存的右目图像
-    // cv::Mat miCacheRight;
-    // /// 缓存的深度图像
-    // cv::Mat miCacheDepth;
-    // /// 缓存的点云
-    // std::vector<Eigen::Vector3f> mvevCacheClouds3f;
-    
-    // uint16_t mnRightExposeTime;
-    
-    // uint32_t mnRightTimestamp;
-    // uint32_t mnDepthTimestamp;
-
-    // IMU 数据
-    // /// 缓存的相机位姿
-    // std::mutex mMutexAccelData;
-    // Eigen::Vector2d mevAccel3d;
-    // double mdAccelTemper;
-    // uint64_t mnAccelTimestamp;
-
-    // Eigen::Isometry3d memCacheCameraTwc;
-
 
     
     // ======================= 控制相关 ======================

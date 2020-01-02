@@ -112,6 +112,7 @@ int main(int argc, char* argv[])
     gcpViewer = std::unique_ptr<Viewer>(new Viewer());
     LOG(DEBUG)<<"[main] Launching Viewer ...";
     std::thread*  pThreadViewer = new std::thread(&Viewer::run, gcpViewer.get());
+    gcpViewer->UpdateStatusBar("Initializing camera ...");
     
 
     // step 3 初始化相机并打开设备
@@ -123,9 +124,11 @@ int main(int argc, char* argv[])
     std::function<void(const mynteyed::StreamData&)>               f4(OnDepthImage);
     std::function<void(const mynteyed::MotionData&)>               f5(OnIMUData);
 
+    gcpViewer->UpdateStatusBar("Opening camera ...");
     camera.OpenCameraIMU(
         f1, f2, f3, f4, f5);
 
+    gcpViewer->UpdateStatusBar("Done.");
     // step 4 主循环
     while(bLoop)
     {
@@ -135,17 +138,21 @@ int main(int argc, char* argv[])
         {
             bLoop =false;
             LOG(DEBUG)<<"[main] ESC Pressed detected.";
+            gcpViewer->UpdateStatusBar("ESC pressed.");
         }
     };
 
+    
+    
     // step 5 善后工作
+    gcpViewer->UpdateStatusBar("Stopping camera ...");
+    LOG(DEBUG)<<"[main] Stopping camera ...";
+    camera.CloseCameraIMU();
+
+    gcpViewer->UpdateStatusBar("Stopping viewer ...");
     LOG(DEBUG)<<"[main] Stopping viewer ...";
     gcpViewer->requestStop();
     pThreadViewer->join();
-    
-
-    LOG(DEBUG)<<"[main] Stopping camera ...";
-    camera.CloseCameraIMU();
 
 
     return 0;
@@ -226,12 +233,6 @@ void OnLeftImage(const mynteyed::StreamData& leftImgData)
         leftImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
         leftImgData.img_info->exposure_time,
         leftImgData.img_info->timestamp);
-
-    // LOG(DEBUG)<<"[OnLeftImage] frame id = " << leftImgData.img_info->frame_id
-    //           <<", stamp = "<<leftImgData.img_info->timestamp
-    //           <<", expos time = "<<leftImgData.img_info->exposure_time
-    //           <<", ["<<leftImgData.img->type() <<"]"
-    //           <<", frame id = "<<leftImgData.img->frame_id();
 }
 
 void OnRightImage(const mynteyed::StreamData& rightImgData)
@@ -240,26 +241,15 @@ void OnRightImage(const mynteyed::StreamData& rightImgData)
         rightImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
         rightImgData.img_info->exposure_time,
         rightImgData.img_info->timestamp);
-
-    // LOG(DEBUG)<<"[OnRightImage] frame id = " << rightImgData.img_info->frame_id
-    //           <<", stamp = "<<rightImgData.img_info->timestamp
-    //           <<", expos time = "<<rightImgData.img_info->exposure_time
-    //           <<", ["<<rightImgData.img->type() <<"]"
-    //           <<", frame id = "<<rightImgData.img->frame_id();
 }
 
 void OnDepthImage(const mynteyed::StreamData& depthImgData)
 {
     gcpViewer->UpdateDepthImage(
         depthImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
-        depthImgData.img_info->exposure_time,
-        depthImgData.img_info->timestamp);
-
-    // LOG(DEBUG)<<"[OnDepthImage] frame id = " << depthImgData.img_info->frame_id
-    //           <<", stamp = "<<depthImgData.img_info->timestamp
-    //           <<", expos time = "<<depthImgData.img_info->exposure_time
-    //           <<", ["<<depthImgData.img->type() <<"]"
-    //           <<", frame id = "<<depthImgData.img->frame_id();
+        // depthImgData.img_info->exposure_time,
+        0);
+        // depthImgData.img_info->timestamp);
 }
 
 void OnIMUData(const mynteyed::MotionData& imuData)

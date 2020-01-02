@@ -59,8 +59,8 @@ bool CameraIMU::OpenCameraIMU(
     params.color_stream_format  = mynteyed::StreamFormat::STREAM_YUYV;
     params.depth_mode           = mynteyed::DepthMode   ::DEPTH_COLORFUL;
     params.stream_mode          = mynteyed::StreamMode  ::STREAM_1280x480;
-    params.state_ae             = false;
-    params.state_awb            = false;
+    params.state_ae             = true;
+    params.state_awb            = true;
     params.colour_depth_value   = 5000;
     // 我的相机不支持IR
     params.ir_intensity         = 0;
@@ -100,8 +100,11 @@ bool CameraIMU::OpenCameraIMU(
 // 关闭相机
 bool CameraIMU::CloseCameraIMU(void)
 {
+
+    mpCamera->DisableMotionDatas();
+    // 这个应该在图像流之后被 disable 不然在图像的回调函数中将会尝试读取imageinfo从而发生段错误
     mpCamera->DisableImageInfo();
-    // mpCamera->DisableMotionDatas();
+
     
     mpCamera->Close();
 

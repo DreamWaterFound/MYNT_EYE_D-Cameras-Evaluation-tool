@@ -23,7 +23,8 @@ Viewer::Viewer()
     :mbRequestStop(false),mbStateStop(true),mbESCPressed(false),
      mpImageCache(nullptr), mpStatusImageCache(nullptr)
 {
-    ;
+    mstrStatusBar = std::string("Viewer Laucnhed.");
+    mbStatusBarUpdated = true;
 }
 
 
@@ -73,7 +74,8 @@ void Viewer::run(void)
     //地图查看器
     pangolin::View& mapViewer = pangolin::CreateDisplay()
         .SetBounds(
-            pangolin::Attach::Pix(mnStatusBarHigh + mfLeftImageViewerHigh),
+            // pangolin::Attach::Pix(mnStatusBarHigh + mfLeftImageViewerHigh),
+            pangolin::DisplayBase().bottom,
             pangolin::DisplayBase().top,
             pangolin::Attach::Pix(mnPanelWitdh),
             pangolin::DisplayBase().right);
@@ -169,33 +171,58 @@ void Viewer::run(void)
           pangolin::DisplayBase().right,
           (1.0f)*mnStatusBarWidth/mnStatusBarHigh);
 
-    pangolin::GlTexture statusImageTexture(
-        mnStatusBarWidth, mnStatusBarHigh,
-        GL_RGB,
-        false,
-        0,
-        GL_RGB,
-        GL_UNSIGNED_BYTE);
+    mupStatusImageTexture = std::unique_ptr<pangolin::GlTexture>(
+        new pangolin::GlTexture(
+            mnStatusBarWidth, mnStatusBarHigh,
+            GL_RGB,
+            false,
+            0,
+            GL_RGB,
+            GL_UNSIGNED_BYTE)
+    );
+     
 
-    // DEBUG 
-    cv::Mat image1 = cv::imread("./img/1.png");
-    if(image1.empty())
+    // 处理 Logger 和 Plotter
+    mspImgExpoTimeLogger = std::shared_ptr<pangolin::DataLog>(
+        new pangolin::DataLog());
+
     {
-        std::cout<<"\e[1;31mCan not open image1!\e[0m"<<std::endl;
-        exit(0);
+        std::vector<std::string> vstrLExpoTimeLabels;
+        vstrLExpoTimeLabels.push_back(std::string("Left Expose Time"));
+        vstrLExpoTimeLabels.push_back(std::string("Right Expose Time"));
+        mspImgExpoTimeLogger->SetLabels(vstrLExpoTimeLabels);
     }
 
-    cv::Mat image2 = cv::imread("./img/no_image.png");
-    if(image2.empty())
-    {
-        std::cout<<"\e[1;31mCan not open image2!\e[0m"<<std::endl;
-        exit(0);
-    }
+    mspExpoTimePlotter = std::shared_ptr<pangolin::Plotter>(
+        new pangolin::Plotter(
+            mspImgExpoTimeLogger.get(),     // Logger
+            0.0f,                           // left
+            300.0f,                         // right
+            1000.0f,                           // bottom
+            4000.0f,                         // top
+            10.0f,                          // x-section
+            100.0f                          // y-section
+        )
+    );
 
-    cv::Mat image3 = cv::imread("./img/3.png");
-    if(image3.empty())
+    mspExpoTimePlotter->SetBounds(
+        pangolin::Attach::Pix(mfDepthImageViewerHigh + mnStatusBarHigh),
+        // pangolin::DisplayBase().top,
+        pangolin::Attach::Pix(2 * mfDepthImageViewerHigh + mnStatusBarHigh),
+        // 先这么设置着
+        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::DisplayBase().right
+    );
+
+    mspExpoTimePlotter->Track("$i");
+
+    pangolin::DisplayBase().AddDisplay(*mspExpoTimePlotter);
+
+
+    cv::Mat imageNon = cv::imread("./img/no_image.png");
+    if(imageNon.empty())
     {
-        std::cout<<"\e[1;31mCan not open image3!\e[0m"<<std::endl;
+        std::cout<<"\e[1;31mCan not open imageNon!\e[0m"<<std::endl;
         exit(0);
     }
 
@@ -205,10 +232,10 @@ void Viewer::run(void)
         std::bind(&Viewer::OnESC, this));
 
     // 初始化各个纹理
-    cv2glIamge(*mupLeftImageTexture, image2);
-    cv2glIamge(*mupRightImageTexture,image2);
-    cv2glIamge(*mupDepthImageTexture,image2);
-    mImgLeft = mImgRight = mImgDepth = image2;
+    cv2glIamge(*mupLeftImageTexture, imageNon);
+    cv2glIamge(*mupRightImageTexture,imageNon);
+    cv2glIamge(*mupDepthImageTexture,imageNon);
+    mImgLeft = mImgRight = mImgDepth = imageNon;
 
     //=========================== 显示刷新部分 ================================
 
@@ -234,23 +261,17 @@ void Viewer::run(void)
         // 右目图像更新
         rightImgViewer.Activate();
         DrawRightImageTexture();
-        // DEPRECATED
-        // glColor3f(1.0,1.0,1.0);
-        // if(cv2glIamge(rightImageTexture,image3))
-        //     rightImageTexture.RenderToViewport();
+        
 
         // 深度图像更新
         depthImgViewer.Activate();
         DrawDepthImageTexture();
-        // glColor3f(1.0,1.0,1.0);
-        // if(cv2glIamge(depthImageTexture,image2))
-        //     depthImageTexture.RenderToViewport();
+       
 
         //底部状态栏更新
         statusViewer.Activate();
         glColor3f(1.0,1.0,1.0);
-        drawStatusBarImg(statusImageTexture);
-        statusImageTexture.RenderToViewport();
+        DrawStatusBarImg();
 
         pangolin::FinishFrame();
     }
@@ -260,8 +281,6 @@ void Viewer::run(void)
     // 销毁所有窗口
     pangolin::DestroyWindow(mstrWindowTitle);
 
-    // // 这里笼统地认为已经按下了ESC键
-    // setESCPressed();
     setStateStop();
 }
 
@@ -299,38 +318,44 @@ bool Viewer::cv2glIamge(pangolin::GlTexture& imageTexture, const cv::Mat img)
 }
 
 // 绘制状态栏的图像
-void Viewer::drawStatusBarImg(pangolin::GlTexture& imageTexture)
+void Viewer::DrawStatusBarImg(void)
 {
-    
-    std::stringstream ss;
-    ss<<"Status Bar Demo.";
+    {
+        std::lock_guard<std::mutex> lock(mMutexStatusBar);
 
-    cv::Mat statusImg(
-        mnStatusBarHigh,
-        mnStatusBarWidth,
-        CV_8UC3,
-        cv::Scalar(0.2*255,0.2*255,0.2*255));
+        if(mbStatusBarUpdated)
+        {
+            mbStatusBarUpdated = false;
+            cv::Mat statusImg(
+                mnStatusBarHigh,
+                mnStatusBarWidth,
+                CV_8UC3,
+                cv::Scalar(0.2*255,0.2*255,0.2*255));
+            
+            cv::putText(
+                statusImg,
+                mstrStatusBar,
+                //Point(5,statusImg.rows-5),
+                cv::Point(10,statusImg.rows-10),
+                cv::FONT_HERSHEY_PLAIN,
+                1,
+                cv::Scalar(255,255,255),
+                1,8);
+            
+            for(int i=0;i<statusImg.rows;i++) {
+                for(int j=0;j<statusImg.cols;j++)
+                {
+                    mpStatusImageCache[i*3*statusImg.cols+j*3]=statusImg.at<unsigned char>(statusImg.rows-1-i,3*j+2);
+                    mpStatusImageCache[i*3*statusImg.cols+j*3+1]=statusImg.at<unsigned char>(statusImg.rows-1-i,3*j+1);
+                    mpStatusImageCache[i*3*statusImg.cols+j*3+2]=statusImg.at<unsigned char>(statusImg.rows-1-i,3*j);;
+                }
+            }
+        }
+    }
     
-    cv::putText(
-        statusImg,
-        ss.str(),
-        //Point(5,statusImg.rows-5),
-        cv::Point(10,statusImg.rows-10),
-        cv::FONT_HERSHEY_PLAIN,
-        1,
-        cv::Scalar(255,255,255),
-        1,8);
-    
-    for(int i=0;i<statusImg.rows;i++) {
-      for(int j=0;j<statusImg.cols;j++)
-      {
-        mpStatusImageCache[i*3*statusImg.cols+j*3]=statusImg.at<unsigned char>(statusImg.rows-1-i,3*j+2);
-        mpStatusImageCache[i*3*statusImg.cols+j*3+1]=statusImg.at<unsigned char>(statusImg.rows-1-i,3*j+1);
-        mpStatusImageCache[i*3*statusImg.cols+j*3+2]=statusImg.at<unsigned char>(statusImg.rows-1-i,3*j);;
-      }
-    } 
-
-    imageTexture.Upload(mpStatusImageCache,GL_RGB,GL_UNSIGNED_BYTE);
+    // 更新
+    mupStatusImageTexture->Upload(mpStatusImageCache,GL_RGB,GL_UNSIGNED_BYTE);
+    mupStatusImageTexture->RenderToViewport();
 }
 
 // 地图查看器更新
@@ -436,8 +461,27 @@ void Viewer::UpdateLeftImage(
         mbLeftImagesUpdated = true;
         
         mImgLeft = imgLeft.clone();
-        mnLeftExposeTime = nExposeTime;
         mnLeftTimestamp = nLeftTimestamp;
+    }
+
+    // 曝光时间更新
+    {
+        std::lock_guard<std::mutex> lock(mMutexImageExposeTime);
+        
+        mnLeftExposeTime = nExposeTime;
+        // 如果此时右目图像已经有曝光时间数据
+        if(mbRightETUpdated)
+        {
+            mspImgExpoTimeLogger->Log(mnLeftExposeTime, mnRightExposeTime);
+            
+            // 然后清空标志
+            mbRightETUpdated = false;
+            mbLeftETUpdated = false;
+        }
+        else
+        {
+            mbLeftETUpdated = true;
+        }
     }
 
     // 写在这里是考虑到调用GLOG会耽误一些时间
@@ -445,7 +489,7 @@ void Viewer::UpdateLeftImage(
     {
         // 说明上一次更新后数据还没有来得及被使用
         LOG(WARN)<<"[Viewer::UpdateLeftImage] last left frame was not used!";
-    }
+    }    
 }
 
 void Viewer::DrawLeftImageTexture(void)
@@ -479,8 +523,26 @@ void Viewer::UpdateRightImage(
         mbRightImagesUpdated = true;
         
         mImgRight = imgRight.clone();
-        mnRightExposeTime = nExposeTime;
         mnRightTimestamp = nRightTimestamp;
+    }
+
+    // 曝光时间更新
+    {
+        std::lock_guard<std::mutex> lock(mMutexImageExposeTime);
+        
+        mnRightExposeTime = nExposeTime;
+        // 如果此时左目图像已经有曝光时间数据
+        if(mbLeftETUpdated)
+        {
+            mspImgExpoTimeLogger->Log(mnLeftExposeTime, mnRightExposeTime);
+            // 然后清空标志
+            mbRightETUpdated = false;
+            mbLeftETUpdated = false;
+        }
+        else
+        {
+            mbRightETUpdated = true;
+        }
     }
 
     // 写在这里是考虑到调用GLOG会耽误一些时间
@@ -492,7 +554,6 @@ void Viewer::UpdateRightImage(
 
 }
 
-
 void Viewer::DrawRightImageTexture(void)
 {
     std::unique_lock<std::mutex> lock(mMutexRightImage);
@@ -503,11 +564,8 @@ void Viewer::DrawRightImageTexture(void)
         mupRightImageTexture->RenderToViewport();
 }
 
-
-
 void Viewer::UpdateDepthImage(
         const cv::Mat&  imgDepth,
-        const uint16_t& nExposeTime,
         const uint32_t& nDepthTimestamp)
 {
     bool bLastUpdateFlag;
@@ -517,19 +575,16 @@ void Viewer::UpdateDepthImage(
         mbDepthImagesUpdated = true;
         
         mImgDepth = imgDepth.clone();
-        mnDepthExposeTime = nExposeTime;
         mnDepthTimestamp = nDepthTimestamp;
     }
 
-    // 写在这里是考虑到调用GLOG会耽误一些时间
+    // 写在这里是考虑到调用 GLOG 会耽误一些时间
     if(bLastUpdateFlag)
     {
         // 说明上一次更新后数据还没有来得及被使用
         LOG(WARN)<<"[Viewer::UpdateDepthImage] last depth frame was not used!";
     }
-
 }
-
 
 void Viewer::DrawDepthImageTexture(void)
 {
@@ -539,6 +594,13 @@ void Viewer::DrawDepthImageTexture(void)
     if(cv2glIamge(*mupDepthImageTexture, mImgDepth))
         // 随机纹理
         mupDepthImageTexture->RenderToViewport();
+}
+
+void Viewer::UpdateStatusBar(const std::string& strStatusString)
+{
+    std::lock_guard<std::mutex> lock(mMutexStatusBar);
+    mstrStatusBar  = strStatusString;
+    mbStatusBarUpdated = true;
 }
 
 
