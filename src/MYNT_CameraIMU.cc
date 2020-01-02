@@ -70,12 +70,12 @@ bool CameraIMU::OpenCameraIMU(
 
     // 如果需要统计曝光时间等数据, 就需要使能这个选项
     mpCamera->EnableImageInfo(true);
-    // mpCamera->EnableMotionDatas(0);
+    mpCamera->EnableMotionDatas();
 
 
     // 现在先不启用这两个
     // mpCamera->SetImgInfoCallback(funcOnImageInfo);
-    // mpCamera->SetMotionCallback (funcOnIMUStream);
+    mpCamera->SetMotionCallback (funcOnIMUStream);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_LEFT_COLOR,  funcOnLeftImage);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_RIGHT_COLOR, funcOnRightImage);
     mpCamera->SetStreamCallback (mynteyed::ImageType::IMAGE_DEPTH,       funcOnDepthImage);

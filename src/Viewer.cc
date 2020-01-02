@@ -218,6 +218,102 @@ void Viewer::run(void)
 
     pangolin::DisplayBase().AddDisplay(*mspExpoTimePlotter);
 
+    // IMU 的 Logger 和 Ploter
+    mspAccelLogger = std::shared_ptr<pangolin::DataLog>(
+        new pangolin::DataLog());
+    {
+        std::vector<std::string> vstrAccelLabels;
+        vstrAccelLabels.push_back(std::string("Accel X"));
+        vstrAccelLabels.push_back(std::string("Accel Y"));
+        vstrAccelLabels.push_back(std::string("Accel Z"));
+        mspAccelLogger->SetLabels(vstrAccelLabels);
+    }
+
+    mspAccelPlotter = std::shared_ptr<pangolin::Plotter>(
+        new pangolin::Plotter(
+            mspAccelLogger.get(),     // Logger
+            0.0f,                           // left
+            3000.0f,                         // right
+            -2.0f,                           // bottom
+            +2.0f,                         // top
+            100.0f,                          // x-section
+            2.0f                          // y-section
+        )
+    );
+    mspAccelPlotter->SetBounds(
+        pangolin::Attach::Pix(2 * mfDepthImageViewerHigh + mnStatusBarHigh),
+        // pangolin::DisplayBase().top,
+        pangolin::Attach::Pix(3 * mfDepthImageViewerHigh + mnStatusBarHigh),
+        // 先这么设置着
+        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::DisplayBase().right
+    );
+    mspAccelPlotter->Track("$i");
+    pangolin::DisplayBase().AddDisplay(*mspAccelPlotter);
+
+    mspGyroLogger = std::shared_ptr<pangolin::DataLog>(
+        new pangolin::DataLog());
+    {
+        std::vector<std::string> vstrGyroLabels;
+        vstrGyroLabels.push_back(std::string("Gyro X"));
+        vstrGyroLabels.push_back(std::string("Gyro Y"));
+        vstrGyroLabels.push_back(std::string("Gyro Z"));
+        mspGyroLogger->SetLabels(vstrGyroLabels);
+    }
+
+    mspGyroPlotter = std::shared_ptr<pangolin::Plotter>(
+        new pangolin::Plotter(
+                mspGyroLogger.get(),     // Logger
+                0.0f,                           // left
+                3000.0f,                         // right
+                -100.0f,                           // bottom
+                +100.0f,                         // top
+                100.0f,                          // x-section
+                10.0f                          // y-section
+        )
+    );
+    mspGyroPlotter->SetBounds(
+        pangolin::Attach::Pix(3 * mfDepthImageViewerHigh + mnStatusBarHigh),
+        // pangolin::DisplayBase().top,
+        pangolin::Attach::Pix(4 * mfDepthImageViewerHigh + mnStatusBarHigh),
+        // 先这么设置着
+        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::DisplayBase().right
+    );
+    mspGyroPlotter->Track("$i");
+    pangolin::DisplayBase().AddDisplay(*mspGyroPlotter);
+
+    // 温度
+    mspIMUTempLogger = std::shared_ptr<pangolin::DataLog>(
+        new pangolin::DataLog());
+    {
+        std::vector<std::string> vstrAccelLabels;
+        vstrAccelLabels.push_back(std::string("IMU Temperature"));
+        mspIMUTempLogger->SetLabels(vstrAccelLabels);
+    }
+
+    mspIMUTempPlotter = std::shared_ptr<pangolin::Plotter>(
+        new pangolin::Plotter(
+            mspIMUTempLogger.get(),     // Logger
+            0.0f,                           // left
+            6000.0f,                         // right
+            20.0f,                           // bottom
+            45.0f,                         // top
+            200.0f,                          // x-section
+            2.0f                          // y-section
+        )
+    );
+    mspIMUTempPlotter->SetBounds(
+        pangolin::Attach::Pix(mfDepthImageViewerHigh + mnStatusBarHigh),
+        // pangolin::DisplayBase().top,
+        pangolin::Attach::Pix(2 * mfDepthImageViewerHigh + mnStatusBarHigh),
+        // 先这么设置着
+        pangolin::Attach::ReversePix(1.5f * mfDepthImageViewerHigh),
+        pangolin::DisplayBase().right
+    );
+    mspIMUTempPlotter->Track("$i");
+    pangolin::DisplayBase().AddDisplay(*mspIMUTempPlotter);
+
 
     cv::Mat imageNon = cv::imread("./img/no_image.png");
     if(imageNon.empty())
@@ -280,6 +376,8 @@ void Viewer::run(void)
 
     // 销毁所有窗口
     pangolin::DestroyWindow(mstrWindowTitle);
+    // 避免点击 x 退出窗口但是主线程中却没有任何提示
+    OnESC();
 
     setStateStop();
 }
@@ -602,6 +700,53 @@ void Viewer::UpdateStatusBar(const std::string& strStatusString)
     mstrStatusBar  = strStatusString;
     mbStatusBarUpdated = true;
 }
+
+// 更新 IMU 数据
+void Viewer::UpdateAccel(
+    const double dX, const double dY, const double dZ,
+    const double dT,
+    const uint64_t nTimestamp)
+{
+    {
+        std::lock_guard<std::mutex> lock(mMutexIMUAccel);
+        mdAccX = dX;
+        mdAccY = dY;
+        mdAccZ = dZ;
+        mnAccTimestamp = nTimestamp;
+    }
+    mspAccelLogger->Log(mdAccX, mdAccY, mdAccZ);
+
+    // 更新温度
+    {
+        std::lock_guard<std::mutex> lock(mMutexIMUTemp);
+        mdIMUTemp = dT;
+    }
+    mspIMUTempLogger->Log(mdIMUTemp);
+}
+
+void Viewer::UpdateGyro(
+    const double dX, const double dY, const double dZ,
+    const double dT,
+    const uint64_t nTimestamp)
+{
+    {
+        std::lock_guard<std::mutex> lock(mMutexIMUGyro);
+        mdGyroX = dX;
+        mdGyroY = dY;
+        mdGyroZ = dZ;
+        mnGyroTimestamp = nTimestamp;
+    }
+    // 更新Logger
+    mspGyroLogger->Log(mdGyroX, mdGyroY, mdGyroZ);
+
+    // 更新温度
+    {
+        std::lock_guard<std::mutex> lock(mMutexIMUTemp);
+        mdIMUTemp = dT;
+    }
+    mspIMUTempLogger->Log(mdIMUTemp);   
+}
+
 
 
 

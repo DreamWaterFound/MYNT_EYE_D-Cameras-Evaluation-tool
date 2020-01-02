@@ -65,6 +65,19 @@ public:
     // 更新状态栏数据
     void UpdateStatusBar(const std::string& strStatusString);
 
+    // 更新IMU数据
+    void UpdateAccel(
+        const double dX, const double dY, const double dZ,
+        const double dT,
+        const uint64_t nTimestamp);
+
+    void UpdateGyro(
+        const double dX, const double dY, const double dZ,
+        const double dT,
+        const uint64_t nTimestamp);
+
+
+
 public:
 
     // 和绘图相关的函数
@@ -151,6 +164,25 @@ private:
     /// 时间戳
     uint32_t mnDepthTimestamp;
 
+
+    // IMU 数据
+    std::mutex mMutexIMUAccel;
+    double mdAccX;
+    double mdAccY;
+    double mdAccZ;
+    uint64_t mnAccTimestamp;
+
+    std::mutex mMutexIMUGyro;
+    double mdGyroX;
+    double mdGyroY;
+    double mdGyroZ;
+    uint64_t mnGyroTimestamp;
+
+    std::mutex mMutexIMUTemp;
+    double mdIMUTemp;
+
+
+
 private:
     // 状态栏相关
     std::mutex  mMutexStatusBar;
@@ -163,10 +195,16 @@ private:
 
     // 用于记录数据的 Logger
     std::shared_ptr<pangolin::DataLog> mspImgExpoTimeLogger;
-    // std::shared_ptr<pangolin::DataLog> mspRImgExpoTimeLogger;
+    std::shared_ptr<pangolin::DataLog> mspAccelLogger;
+    std::shared_ptr<pangolin::DataLog> mspGyroLogger;
+    std::shared_ptr<pangolin::DataLog> mspIMUTempLogger;
+    
 
     // 数据绘制器 -- 曝光时间相关
     std::shared_ptr<pangolin::Plotter> mspExpoTimePlotter;
+    std::shared_ptr<pangolin::Plotter> mspAccelPlotter;
+    std::shared_ptr<pangolin::Plotter> mspGyroPlotter;
+    std::shared_ptr<pangolin::Plotter> mspIMUTempPlotter;
 
 private:
     //私有内联函数

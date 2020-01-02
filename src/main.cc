@@ -222,6 +222,8 @@ void DeinitGLog(void)
 // TODO 考虑去掉
 void OnImageInfo(const std::shared_ptr<mynteyed::ImgInfo>& cspImgInfo)
 {
+    if(!bLoop) return;
+
     LOG(DEBUG)<<"[OnImageInfo] frame id = " << cspImgInfo->frame_id
               <<", stamp = "<<cspImgInfo->timestamp
               <<", expos time = "<<cspImgInfo->exposure_time;
@@ -229,6 +231,7 @@ void OnImageInfo(const std::shared_ptr<mynteyed::ImgInfo>& cspImgInfo)
 
 void OnLeftImage(const mynteyed::StreamData& leftImgData)
 {
+    if(!bLoop) return;
     gcpViewer->UpdateLeftImage(
         leftImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
         leftImgData.img_info->exposure_time,
@@ -237,6 +240,7 @@ void OnLeftImage(const mynteyed::StreamData& leftImgData)
 
 void OnRightImage(const mynteyed::StreamData& rightImgData)
 {
+    if(!bLoop) return;
     gcpViewer->UpdateRightImage(
         rightImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
         rightImgData.img_info->exposure_time,
@@ -245,6 +249,7 @@ void OnRightImage(const mynteyed::StreamData& rightImgData)
 
 void OnDepthImage(const mynteyed::StreamData& depthImgData)
 {
+    if(!bLoop) return;
     gcpViewer->UpdateDepthImage(
         depthImgData.img->To(mynteyed::ImageFormat::COLOR_BGR)->ToMat(),
         // depthImgData.img_info->exposure_time,
@@ -254,13 +259,26 @@ void OnDepthImage(const mynteyed::StreamData& depthImgData)
 
 void OnIMUData(const mynteyed::MotionData& imuData)
 {
+    if(!bLoop) return;
     if(imuData.imu->flag == MYNTEYE_IMU_ACCEL)
     {
-        LOG(DEBUG)<<"[OnIMUData] accel stamp"<< imuData.imu->timestamp;
+        // LOG(DEBUG)<<"[OnIMUData] accel stamp "<< imuData.imu->timestamp;
+        gcpViewer->UpdateAccel(
+            imuData.imu->accel[0],
+            imuData.imu->accel[1],
+            imuData.imu->accel[2],
+            imuData.imu->temperature,
+            imuData.imu->timestamp);
     }
     else if(imuData.imu->flag == MYNTEYE_IMU_GYRO)
     {
-        LOG(DEBUG)<<"[OnIMUData] gyro  stamp"<< imuData.imu->timestamp;
+        // LOG(DEBUG)<<"[OnIMUData] gyro  stamp "<< imuData.imu->timestamp;
+        gcpViewer->UpdateGyro(
+            imuData.imu->gyro[0],
+            imuData.imu->gyro[1],
+            imuData.imu->gyro[2],
+            imuData.imu->temperature,
+            imuData.imu->timestamp);
     }
 }
 
