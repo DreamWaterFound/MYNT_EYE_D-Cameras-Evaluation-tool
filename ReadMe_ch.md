@@ -1,6 +1,6 @@
 # Evaluation tool for MYNT_EYE_D Cameras
 
-[English](./ReadMe.md) | Chinese
+[English](./ReadMe.md) | 中文
 
 为小觅相机 MYNT D1000-50 相机编写的一个简易评测工具。于 Ubuntu 16.04 上进行了测试
 

@@ -1,6 +1,6 @@
 # Evaluation tool for MYNT_EYE_D Cameras
 
-English | [Chinese](./ReadMe_ch.md)
+English | [中文](./ReadMe_ch.md)
 
 A Evaluation tool for MYNT EYE stereo cameras. I designed it for D1000-50. Tested on Ubuntu 16.04.
 
@@ -12,7 +12,7 @@ Distant scene:
 
 ![distance](../MYNT_EYE_D_EVA/doc/far.gif)
 
-> It will take some time for the GIFs (5.9MB, 5.8MB) to load).
+> It will take some time for the GIFs (2.2MB, 3.2MB) to load).
 
 ## Feature
 
@@ -103,7 +103,7 @@ Plug in the camera (note that the camera may need to be plugged in  **USB3.0** )
 ./bin/eva
 ```
 
-About Viewr:
+About Viewer:
 
 ![GUI_en](./doc/GUI_en.png)
 
