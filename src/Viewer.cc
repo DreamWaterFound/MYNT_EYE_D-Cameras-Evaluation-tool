@@ -133,12 +133,12 @@ void Viewer::run(void)
             pangolin::DisplayBase().bottom,
             pangolin::DisplayBase().top,
             pangolin::DisplayBase().left,
-            pangolin::Attach::Pix(mnPanelWitdh));
+            pangolin::Attach::Pix(mnPanelWitdh));   
     
-    pangolin::Var<bool> widgetBtnQuitMode("Panel.Quit After Ending",true,true);
-    pangolin::Var<bool> widgetBtnFloatRGBView("Panel.Float RGB View",false,true);
-    pangolin::Var<bool> widgetBtnFloatDepthView("Panel.Float Depth View",false,true);
-    pangolin::Var<bool> widgetBtnDepthColored("Panel.Depth colored",false,true);
+    pangolin::Var<bool> widgetBtnQuitMode("Panel.D1000-50",true,true);
+    // pangolin::Var<bool> widgetBtnFloatRGBView("Panel.Float RGB View",false,true);
+    // pangolin::Var<bool> widgetBtnFloatDepthView("Panel.Float Depth View",false,true);
+    // pangolin::Var<bool> widgetBtnDepthColored("Panel.Depth colored",false,true);
     
     // Caches
     mpImageCache=new unsigned char[
@@ -224,6 +224,7 @@ void Viewer::run(void)
 
 
     LOG(DEBUG)<<"[Viewer::run] mnStatusBarHigh = "<<mnStatusBarHigh<<", mnStatusBarWidth = "<<mnStatusBarWidth;
+
 
     mupStatusImageTexture = std::unique_ptr<pangolin::GlTexture>(
         new pangolin::GlTexture(
@@ -510,8 +511,11 @@ void Viewer::DrawStatusBarImg(void)
     }
     
     // 更新
+    // NOTE  默认是 CPU => GPU 数据传输是四字节对齐, 但是有可能导致图像缩放之后并不能够严格一行四个字节, 所以这里重新设置一下
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     mupStatusImageTexture->Upload(mpStatusImageCache,GL_RGB,GL_UNSIGNED_BYTE);
     mupStatusImageTexture->RenderToViewport();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
 // 地图查看器更新

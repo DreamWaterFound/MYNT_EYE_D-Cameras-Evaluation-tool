@@ -38,6 +38,14 @@
 
 #include "Viewer.h"
 
+#include <string>
+
+
+
+
+
+
+
 // ================================= 命名空间 ==========================================
 
 using std::cout;
@@ -142,8 +150,6 @@ int main(int argc, char* argv[])
         }
     };
 
-    
-    
     // step 5 善后工作
     gcpViewer->UpdateStatusBar("Stopping camera ...");
     LOG(DEBUG)<<"[main] Stopping camera ...";
@@ -214,6 +220,8 @@ void InitGLog(std::string& strLogRootPath)
 void DeinitGLog(void)
 {
     google::ShutdownGoogleLogging();
+
+    
 }
 
 
