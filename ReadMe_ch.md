@@ -6,13 +6,15 @@
 
 近处场景：
 
-![near](../MYNT_EYE_D_EVA/doc/near.gif)
+![near](https://github.com/DreamWaterFound/MYNT_EYE_D-Cameras-Evaluation-tool/blob/master/doc/near.gif)
 
 远处场景：
 
-![distance](../MYNT_EYE_D_EVA/doc/far.gif)
+![distance](https://github.com/DreamWaterFound/MYNT_EYE_D-Cameras-Evaluation-tool/blob/master/doc/far.gif)
 
-> GIF 图像有点大 (5.9MB, 5.8MB) ， 可能需要花点时间去加载
+
+
+> GIF 图像有点大 (2.2MB, 3.2MB) ， 可能需要花点时间去加载
 
 ## 功能
 
@@ -21,8 +23,6 @@
 - [x] 绘制 IMU 原始数据(包括温度)随着时间的变化
 - [ ] 绘制三个传感器(左目相机, 右目相机和IMU)的时间戳
 - [x] 绘制曝光时间随时间的变化
-
-![distance](../MYNT_EYE_D_EVA/doc/GUI_cn.png)
 
 ## 依赖
 

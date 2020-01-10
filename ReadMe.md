@@ -6,11 +6,11 @@ A Evaluation tool for MYNT EYE stereo cameras. I designed it for D1000-50. Teste
 
 Near scenes:
 
-![near](../MYNT_EYE_D_EVA/doc/near.gif)
-
+![near](https://github.com/DreamWaterFound/MYNT_EYE_D-Cameras-Evaluation-tool/blob/master/doc/near.gif)
 Distant scene:
 
-![distance](../MYNT_EYE_D_EVA/doc/far.gif)
+
+![distance](https://github.com/DreamWaterFound/MYNT_EYE_D-Cameras-Evaluation-tool/blob/master/doc/far.gif)
 
 > It will take some time for the GIFs (2.2MB, 3.2MB) to load).
 
